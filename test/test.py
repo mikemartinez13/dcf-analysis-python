@@ -6,7 +6,7 @@ import pandas as pd
 conn = sqlite3.connect('databases/dcf.db')
 curs = conn.cursor()
 
-API_KEY = 'nf5clgXrD1RPCtmrlMQf4aACKSuQZBkQ'
+API_KEY = input()
 
 company = "EA"
 years = 4
