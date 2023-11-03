@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import sqlite3 
 import pandas as pd
 
-conn = sqlite3.connect('databases/dcf.db')
+conn = sqlite3.connect('dcf.db')
 curs = conn.cursor()
 
-API_KEY = input()
+API_KEY = input('Enter your API key:')
 
 company = "EA"
-years = 4
+years = 5
 
 income_statement = requests.get(f"https://financialmodelingprep.com/api/v3/income-statement/{company}?limit={years}&apikey={API_KEY}")
 
@@ -20,13 +20,21 @@ revenues = list(reversed([income_statement[i]['revenue'] for i in range(len(inco
 profits = list(reversed([income_statement[i]['grossProfit'] for i in range(len(income_statement))]))
 net_income = list(reversed([income_statement[i]['netIncome'] for i in range(len(income_statement))]))
 time = list(reversed([income_statement[i]['calendarYear'] for i in range(len(income_statement))]))
-d = {'revenues':revenues, 'profits':profits, 'net income':net_income, 'time':time}
-dcf_df = pd.DataFrame(data = d)
+
+'''print(income_statement)
+for i,grouping in enumerate(income_statement):
+    for is_item in grouping:
+        print(i, is_item, grouping[is_item])'''
+
+dcf_df = pd.DataFrame(income_statement)
+
+
 sql_clear = '''
 DROP TABLE IF EXISTS dcf_table
 ;
-
 '''
+
+
 #print(dcf_df)
 curs.execute(sql_clear)
 
@@ -39,18 +47,11 @@ SELECT *
 FROM dcf_table
 ;
 '''
+print("my sql database")
 print(pd.read_sql(sql, conn))
 
-plt.plot(pd.read_sql(sql, conn)['time'],pd.read_sql(sql, conn)['revenues'] )
-plt.show()
-'''
-plt.plot(revenues, label = "Revenue")
-plt.plot(profits, label = "Profit")
-plt.plot(net_income, label  = "netIncome")
-plt.legend(loc = 'upper left')
-plt.show()
-'''
 
 conn.close()
 # automate pulling from the API, populate the database
 # Once it's built up, we can mess around with it as needed
+
