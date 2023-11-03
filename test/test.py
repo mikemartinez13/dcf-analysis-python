@@ -14,7 +14,7 @@ years = 4
 income_statement = requests.get(f"https://financialmodelingprep.com/api/v3/income-statement/{company}?limit={years}&apikey={API_KEY}")
 
 income_statement = income_statement.json()
-
+#small change
 revenues = list(reversed([income_statement[i]['revenue'] for i in range(len(income_statement))]))
 
 profits = list(reversed([income_statement[i]['grossProfit'] for i in range(len(income_statement))]))
