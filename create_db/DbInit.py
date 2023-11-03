@@ -3,7 +3,7 @@ import sqlite3
 import os
 import requests
 
-class DbInit:
+class ISDb:
     """
     A class using FMP API to fetch company income statement data and process it into a database.
 
@@ -20,7 +20,7 @@ class DbInit:
             create: bool = False
                 ): # Path to the database file # Should we create a new database if it doesn't exist?
         """
-        Initializes an empty database object based on desired filepath and fetches raw income statement data. 
+        Initializes an empty database based on desired filepath and fetches raw income statement data. 
         Parameters:
             path_db (str): desired filepath for database object.
             company_ticker (str): company ticker as listed on U.S. Stock Exchanges (e.g. Apple = 'AAPL').
@@ -52,21 +52,22 @@ class DbInit:
     def get_rawdata(self):
         return self.__json_data.copy()
     
-    def get_info(self):
-        message = f"The company in the data is: {self.__company} and the data spans the course of the last {self.__years} years."
-        return message
-    
-    def income_statement(self
-                ): # create database from FMP API income statement data
-
+    def income_statement_df(self): # create database from FMP API income statement data
         '''
-        
-        CONVERT ALL DATA FROM JSON INTO A DATAFRAME
-        
+        Returns pandas DataFrame created from income statement JSON raw data.
         '''
+        df = pd.DataFrame(self.__json_data.copy())
+        return df
 
-        #is_df = pd.DataFrame(data = d)
+    def income_statement_csv(self):
+        '''
+        Writes to a csv file created from income statement JSON raw data.
+        '''
+        df = self.income_statement_df()
+        # write file_path check for overwriting csv files
+        df.to_csv(f"Income_statement_{self.__company}.csv")
 
+        return
     
     def connect(self) -> None:
         self.conn = sqlite3.connect(self.__path_db)
@@ -83,3 +84,7 @@ class DbInit:
         results = pd.read_sql(sql, self.conn)
         self.close()
         return results
+
+    def __str__(self):
+        message = (f"The company in the data is {self.__company}, and the data spans the course of the last {self.__years} years.")
+        return message
