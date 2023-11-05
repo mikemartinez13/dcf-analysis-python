@@ -13,6 +13,7 @@ class ISDb:
         years (int): years of past data desired for the company.
         create (bool, default to False): if True, create a new database if path_db does not exist.
     """
+ 
     def __init__(self,
             path_db: str,
             company_ticker: str,
