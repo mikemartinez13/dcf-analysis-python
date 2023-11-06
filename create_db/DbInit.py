@@ -37,21 +37,22 @@ class ISDb:
              #   self.conn = sqlite3.connect(path_db)
             #else:
              #   raise FileNotFoundError(path_db + ' does not exist. Perhaps your file path is incorrect?')
-        self.__conn = sqlite3.connect(path_db)
 
         income_statement_df = pd.DataFrame(full_is_data)
 
         if not replace:
             raise Exception("Data already exists in the file! Write to a new filepath.")
         else:
-            if os.path.isfile(path_db):
+            if os.path.exists(path_db):
                 confirmation = input("WARNING! You are about to overwrite existing data in the table. Would you like to proceed? y/n: ")
                 if confirmation == 'y':
+                    self.__conn = sqlite3.connect(path_db)
                     income_statement_df.to_sql('i_s_table', self.__conn,index = False, if_exists = 'replace')
                     print('Database successfully created!')
                 else: 
                     raise Exception("That was a close one! Next time, write to a new filepath.")
             else:
+                self.__conn = sqlite3.connect(path_db)
                 income_statement_df.to_sql('i_s_table', self.__conn,index = False, if_exists = 'replace')
                 print('Database successfully created!')
 
@@ -78,7 +79,7 @@ class ISDb:
         '''
         return self.__df.copy()
 
-    def income_statement_csv(self):
+    def get_csv(self):
         '''
         Writes to a csv file created from income statement JSON raw data. Returns none.
         '''

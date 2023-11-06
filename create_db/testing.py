@@ -4,7 +4,7 @@ import requests
 import sqlite3
 from DbInit import ISDb
 
-db = ISDb(path_db = 'isdb.db', company_tickers=['AAPL','MSFT','TSLA','NVDA','META','GOOGL','AMZN'], years = 5, replace=True)
+db = ISDb(path_db = 'isdb.db', company_tickers=['AAPL','MSFT','TSLA','NVDA','META','GOOGL','AMZN'], years = 5, replace=False)
 
 
 db.connect()
