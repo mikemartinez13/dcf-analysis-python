@@ -15,6 +15,7 @@ class ISDb:
         years (int): years of past data desired for the company.
         replace (bool, default to False): if True, replace and overwrite database at filepath. If False.
     """
+ 
     def __init__(self,
             path_db: str,
             company_tickers: list,
