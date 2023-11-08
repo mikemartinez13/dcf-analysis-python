@@ -15,6 +15,8 @@ class ISDb:
         years (int): years of past data desired for the company.
         replace (bool, default to False): if True, replace and overwrite database at filepath. If False.
     """
+
+    #Add in balance sheet
  
     def __init__(self,
             path_db: str,
@@ -24,13 +26,23 @@ class ISDb:
                 ): # Path to the database file # Should we create a new database if it doesn't exist?
         
         full_is_data = []
+        full_bs_data = []
+        full_cf_data = []
         API_KEY = input("Your FMP API key here:")
         #query company data individually
         for comp in company_tickers:
             income_statement = requests.get(f"https://financialmodelingprep.com/api/v3/income-statement/{comp}?limit={years}&apikey={API_KEY}")
+            balance_sheet = requests.get(f"https://financialmodelingprep.com/api/v3/balance-sheet-statement/{comp}?limit={years}&apikey={API_KEY}")
+            cash_flow = requests.get(f"https://financialmodelingprep.com/api/v3/cash-flow-statement/{comp}?limit={years}&apikey={API_KEY}")
+
             income_statement_json = income_statement.json()
+            balance_sheet_json = balance_sheet.json()
+            cash_flow_json = cash_flow.json()
+
             full_is_data.extend(income_statement_json)
-        
+            full_bs_data.extend(balance_sheet_json)
+            full_cf_data.extend(cash_flow_json)
+
         # Check if the file does not exist
         #if not os.path.exists(path_db):
             # Should we create it?
@@ -40,28 +52,36 @@ class ISDb:
              #   raise FileNotFoundError(path_db + ' does not exist. Perhaps your file path is incorrect?')
 
         income_statement_df = pd.DataFrame(full_is_data)
+        balance_sheet_df = pd.DataFrame(full_bs_data)
+        cash_flow_df = pd.DataFrame(full_cf_data)
 
-        if not replace:
-            raise Exception("Data already exists in the file! Write to a new filepath.")
-        else:
-            if os.path.exists(path_db):
+        if os.path.exists(path_db):
+            if not replace:
+                raise Exception("Data already exists in the file! Write to a new filepath.")
+            else:
                 confirmation = input("WARNING! You are about to overwrite existing data in the table. Would you like to proceed? y/n: ")
                 if confirmation == 'y':
                     self.__conn = sqlite3.connect(path_db)
-                    income_statement_df.to_sql('i_s_table', self.__conn,index = False, if_exists = 'replace')
+                    income_statement_df.to_sql('tIncome', self.__conn,index = False, if_exists = 'replace')
+                    balance_sheet_df.to_sql('tBalance', self.__conn, index = False, if_exists = 'replace')
+                    cash_flow_df.to_sql('tCashFlow', self.__conn, index = False, if_exists = 'replace')
                     print('Database successfully created!')
                 else: 
                     raise Exception("That was a close one! Next time, write to a new filepath.")
-            else:
-                self.__conn = sqlite3.connect(path_db)
-                income_statement_df.to_sql('i_s_table', self.__conn,index = False, if_exists = 'replace')
-                print('Database successfully created!')
+        else:
+            self.__conn = sqlite3.connect(path_db)
+            income_statement_df.to_sql('tIncome', self.__conn,index = False, if_exists = 'replace')
+            balance_sheet_df.to_sql('tBalance', self.__conn, index = False, if_exists = 'replace')
+            cash_flow_df.to_sql('tCashFlow', self.__conn, index = False, if_exists = 'replace')
+            print('Database successfully created!')
 
-        self.__path_db = path_db
-        self.__json_data = full_is_data
+        self.__path_db = path_db #need to fix
+        self.__i_s_data = full_is_data
+        self.__b_s_data = full_bs_data
+        self.__c_f_data = full_cf_data
         self.__years = years
         self.__companies = company_tickers
-        self.__df = income_statement_df
+        #self.__df = income_statement_df #need to fix
 
         self.__conn.close()
 
