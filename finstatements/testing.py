@@ -2,12 +2,18 @@ import pandas as pd
 import numpy as np
 import requests
 import sqlite3
-from DbInit import ISDb
+from financialdb import FinancialStatementsDB
 
-db = ISDb(path_db = 'annual_data.db', company_tickers=['AAPL','MSFT','TSLA','NVDA','META','GOOGL','AMZN'], years = 5, replace=True)
+db = FinancialStatementsDB(path_db = 'new_db.db', create = True)
 
 
-db.connect()
+
+db.load_data(company_tickers = ['AAPL','TSLA','MSFT'], years = 5)
+
+print(db.get_income_statement_df().columns)
+
+print(db)
+
 sql = '''
 SELECT * 
 FROM tIncome
@@ -16,11 +22,8 @@ JOIN tCashFlow USING(symbol, calendarYear)
 
 ;
 '''
-#print(db.get_rawdata())
 
 #print(db.get_df())
 
 print(db.run_query(sql))
 
-
-db.close()

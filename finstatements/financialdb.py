@@ -27,17 +27,17 @@ class FinancialStatementsDB:
         
         if not os.path.exists(path_db):
             if not create:
-                raise FileNotFoundError("Database does not exist! Check your filepath.")
+                raise FileNotFoundError("Database does not exist! Check your filepath. If you would like to create a new database, set create = True.")
             else:
                 self.__conn = sqlite3.connect(path_db)
-                print('Database connected.')
+                print('Created a new database at', path_db)
                 self.__conn.close()
         else:
             self.__conn = sqlite3.connect(path_db)
-            print('Created a new database.')
+            print('Database connected at', path_db)
             self.__conn.close()
 
-        self.__path = path_db
+        self.__path_db = path_db
         self.__i_s_data = []
         self.__b_s_data = []
         self.__c_f_data = []
