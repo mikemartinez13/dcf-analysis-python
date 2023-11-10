@@ -20,14 +20,38 @@ class FinancialStatementsDB:
  
     def __init__(self,
             path_db: str,
-            company_tickers: list,
-            years: int,
-            replace: bool = False
+            #company_tickers: list,
+            #years: int,
+            create: bool = False
                 ): # Path to the database file # Should we create a new database if it doesn't exist?
         
-        full_is_data = []
-        full_bs_data = []
-        full_cf_data = []
+        if not os.path.exists(path_db):
+            if not create:
+                raise FileNotFoundError("Database does not exist! Check your filepath.")
+            else:
+                self.__conn = sqlite3.connect(path_db)
+                print('Database connected.')
+                self.__conn.close()
+        else:
+            self.__conn = sqlite3.connect(path_db)
+            print('Created a new database.')
+            self.__conn.close()
+
+        self.__path = path_db
+        self.__i_s_data = []
+        self.__b_s_data = []
+        self.__c_f_data = []
+        self.__years = None
+        self.__companies = None
+
+    def load_data(self, company_tickers: list, years: int):
+        #
+        # load data from FMP API
+        #
+
+        # full_is_data = []
+        # full_bs_data = []
+        # full_cf_data = []
         API_KEY = input("Your FMP API key here:")
         #query company data individually
         for comp in company_tickers:
@@ -39,74 +63,91 @@ class FinancialStatementsDB:
             balance_sheet_json = balance_sheet.json()
             cash_flow_json = cash_flow.json()
 
-            full_is_data.extend(income_statement_json)
-            full_bs_data.extend(balance_sheet_json)
-            full_cf_data.extend(cash_flow_json)
+            self.__i_s_data.extend(income_statement_json)
+            self.__b_s_data.extend(balance_sheet_json)
+            self.__c_f_data.extend(cash_flow_json)
 
-        # Check if the file does not exist
-        #if not os.path.exists(path_db):
-            # Should we create it?
-            #if create:
-             #   self.conn = sqlite3.connect(path_db)
-            #else:
-             #   raise FileNotFoundError(path_db + ' does not exist. Perhaps your file path is incorrect?')
+        income_statement_df = pd.DataFrame(self.__i_s_data)
+        balance_sheet_df = pd.DataFrame(self.__b_s_data)
+        cash_flow_df = pd.DataFrame(self.__c_f_data)
 
-        income_statement_df = pd.DataFrame(full_is_data)
-        balance_sheet_df = pd.DataFrame(full_bs_data)
-        cash_flow_df = pd.DataFrame(full_cf_data)
+        #
+        # Load dataframes into database
+        #
+        self.connect()
 
-        if os.path.exists(path_db):
-            if not replace:
-                raise Exception("Data already exists in the file! Write to a new filepath.")
-            else:
-                confirmation = input("WARNING! You are about to overwrite existing data in the table. Would you like to proceed? y/n: ")
-                if confirmation == 'y':
-                    self.__conn = sqlite3.connect(path_db)
-                    income_statement_df.to_sql('tIncome', self.__conn,index = False, if_exists = 'replace')
-                    balance_sheet_df.to_sql('tBalance', self.__conn, index = False, if_exists = 'replace')
-                    cash_flow_df.to_sql('tCashFlow', self.__conn, index = False, if_exists = 'replace')
-                    print('Database successfully created!')
-                else: 
-                    raise Exception("That was a close one! Next time, write to a new filepath.")
+        sql_check = '''SELECT name FROM sqlite_master'''
+        query = self.run_query(sql_check)
+
+        if query.size > 0:
+            confirmation = input("WARNING! You are about to overwrite existing data in the database. Would you like to proceed? y/n: ")
+            if confirmation == 'y':
+                self.__conn = sqlite3.connect(self.__path_db)
+                income_statement_df.to_sql('tIncome', self.__conn,index = False, if_exists = 'replace')
+                balance_sheet_df.to_sql('tBalance', self.__conn, index = False, if_exists = 'replace')
+                cash_flow_df.to_sql('tCashFlow', self.__conn, index = False, if_exists = 'replace')
+                print('Database successfully created!')
+            else: 
+                raise Exception("That was a close one! Next time, write to a new filepath.")
         else:
-            self.__conn = sqlite3.connect(path_db)
+            self.__conn = sqlite3.connect(self.__path_db)
             income_statement_df.to_sql('tIncome', self.__conn,index = False, if_exists = 'replace')
             balance_sheet_df.to_sql('tBalance', self.__conn, index = False, if_exists = 'replace')
             cash_flow_df.to_sql('tCashFlow', self.__conn, index = False, if_exists = 'replace')
             print('Database successfully created!')
 
-        self.__path_db = path_db #need to fix
-        self.__i_s_data = full_is_data
-        self.__b_s_data = full_bs_data
-        self.__c_f_data = full_cf_data
+        self.close()
+        #Data is successfully loaded
+
+        # self.__i_s_data = full_is_data
+        # self.__b_s_data = full_bs_data
+        # self.__c_f_data = full_cf_data
         self.__years = years
         self.__companies = company_tickers
         #self.__df = income_statement_df #need to fix
 
-        self.__conn.close()
 
         return
     # Intialize the income_statement request and get the raw data
 
     def get_rawdata(self):
         '''
-        Returns raw income statement data as JSON.
+        Returns full raw financial statement data as JSON.
         '''
-        return self.__json_data.copy()
+        full_json_data = self.__i_s_data + self.__b_s_data + self.__c_f_data
+        return full_json_data.copy()
     
-    def get_df(self): # create database from FMP API income statement data
+    def get_income_statement_df(self): # create database from FMP API income statement data
         '''
         Returns pandas DataFrame created from income statement JSON raw data.
         '''
-        return self.__df.copy()
+
+        return pd.DataFrame(self.__i_s_data.copy())
+    
+    
+    def get_balance_sheet_df(self):
+        '''
+        Returns pandas DataFrame created from balance sheet JSON raw data.
+        '''
+        return pd.DataFrame(self.__b_s_data.copy())
+    
+# Create a class inheriting Exception to handle DataNotLoadedError
+
+    def get_cash_flow_df(self):
+        '''
+        Returns pandas DataFrame created from statement of cash flows JSON raw data.
+        '''
+        return pd.DataFrame(self.__c_f_data.copy())
+    
 
     def get_csv(self):
         '''
         Writes to a csv file created from income statement JSON raw data. Returns none.
         '''
-        isdf = self.income_statement_df()
-        # write file_path check for overwriting csv files
-        df.to_csv(f"Income_statement_{self.__company}.csv")
+        pass
+        # isdf = self.income_statement_df()
+        # # write file_path check for overwriting csv files
+        # df.to_csv(f"Income_statement_{self.__company}.csv")
 
 
         return
@@ -160,5 +201,8 @@ class FinancialStatementsDB:
         return results
 
     def __str__(self):
-        message = (f"The company in the data is {self.__companies}, and the data spans the course of the last {self.__years} years.")
+        if self.__companies is not None and self.__years is not None:
+            message = (f"The companies in the data are {self.__companies}, and the data spans the course of the last {self.__years} years.")
+        else:
+            message = "You haven't loaded in any data yet! Try using .load_data() first."
         return message
